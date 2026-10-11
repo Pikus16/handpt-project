@@ -6,6 +6,12 @@ A browser-local hand and wrist exercise playground. The interface is now a focus
 
 This repository is prepared for free public hosting at `https://pikus16.github.io/handpt-project/`. This is the intended URL until a successful Pages deployment is confirmed. GitHub Pages must use GitHub Actions as its source. Pushing to `main` runs the tests and deploys only `dist/`. All app, worker, model, and WASM URLs are relative, so the project subdirectory works without a custom domain. Camera use is available over the host’s HTTPS connection. No server or paid service is needed.
 
+## Repository-local GitHub login
+
+From this repository, run `./scripts/gh-local login` and authorize **Pikus16** in the browser. The wrapper sets `GH_CONFIG_DIR` to `.git/gh-auth`, ignores inherited GitHub token environment variables, and skips global Git credential setup. Authentication is stored locally inside `.git`, with private directory/file permissions, rather than in the shared keychain. This local token file is never committed, packaged, or deployed. Its OAuth scopes still apply to the GitHub account; the isolation concerns where the login is stored and used.
+
+Use `./scripts/gh-local` instead of `gh` for this project's GitHub commands. The Git credential helper is configured with `git config --local` for this repository and remote only. Do not run `gh auth setup-git`; it changes global Git settings. To remove this repository's login, run `./scripts/gh-local auth logout --hostname github.com --user Pikus16`.
+
 ## Run
 
 ```bash

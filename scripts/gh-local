@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+git_dir="$(git -C "$repo_root" rev-parse --absolute-git-dir)"
+umask 077
+export GH_CONFIG_DIR="$git_dir/gh-auth"
+mkdir -p "$GH_CONFIG_DIR"
+chmod 700 "$GH_CONFIG_DIR"
+# Never inherit another account's token or the global CLI configuration.
+unset GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN
+export GH_HOST=github.com
+export GH_PROMPT_DISABLED=1
+if [[ "${1:-}" == login ]]; then
+  shift
+  # Noninteractive web flow skips the global Git credential setup prompt.
+  # File storage also avoids modifying the shared system keychain.
+  exec gh auth login --hostname github.com --git-protocol https --web --scopes workflow --insecure-storage "$@"
+fi
+if [[ "${1:-}" == auth && "${2:-}" == setup-git ]]; then
+  printf '%s\n' 'Use the repository-local credential helper; global setup is disabled.' >&2
+  exit 1
+fi
+exec gh "$@"
