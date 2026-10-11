@@ -3,7 +3,7 @@ import {metrics,quality,wristQuality,wristViewQuality,exerciseMetric,progress,Re
 import {forearmProjection} from './forearm.js';
 import {CalibrationFlow} from './calibration.js';
 import {calibrationReadout} from './calibration-display.js';
-import {Adventure,renderAdventure,renderWelcome,renderGuide} from './arcade.js';
+import {Adventure,renderAdventure,renderWelcome,renderGuide} from './arcade.js?v=minimal-3';
 const $=id=>document.getElementById(id);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let view='welcome',returnView='welcome',demo=false,stream=null,worker=null,ready=false,busy=false,generation=0,initTimer=null,lastVideo=-1,lastSend=0,lastResult=0,lastFrameRequest=0;
