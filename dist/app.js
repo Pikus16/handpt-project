@@ -1,4 +1,4 @@
-import {EXERCISES,GAMES,exerciseById,gameById} from './exercises.js';
+import {EXERCISES,GAMES,exerciseById,gameById} from './exercises.js?v=mobile-workspace-2';
 import {metrics,quality,wristQuality,wristViewQuality,exerciseMetric,progress,RepetitionCounter,clamp} from './rom.js';
 import {forearmProjection} from './forearm.js';
 import {CalibrationFlow} from './calibration.js';
@@ -22,7 +22,7 @@ function stopCamera(){clearTimeout(initTimer);generation++;worker?.terminate();w
 function beginCalibration(simulated=false){demo=simulated;flow=new CalibrationFlow(EXERCISES);calibrations={};skipped=[];setupPaused=false;$('pause-setup').textContent='Pause setup';$('hand').disabled=simulated;$('demo-setup').hidden=!simulated;$('setup-camera-host').append($('camera-shell'));show('setup');updateStep();if(simulated){$('camera-badge').textContent='DEMO · SIMULATED';$('camera-quality').textContent='Simulated movement';$('camera-empty').hidden=false;}}
 function updateStep(){
  if(flow.done){calibrations=flow.results;activeExercise=null;resetMeasurement();renderLibrary();show('library');return;}
- activeExercise=flow.exercise;worker?.postMessage({type:'reset-forearm'});resetMeasurement();$('exercise-title').textContent=activeExercise.name;$('step-label').textContent=`MOVEMENT ${flow.index+1} OF 5`;$('position-guide').textContent=activeExercise.setup;$('retry').hidden=true;$('retry').disabled=false;$('capture-fill').style.width='0%';renderRail();renderSetup();
+ activeExercise=flow.exercise;worker?.postMessage({type:'reset-forearm'});resetMeasurement();$('exercise-title').textContent=activeExercise.name;$('step-label').textContent=`MOVEMENT ${flow.index+1} OF 5`;$('position-guide').textContent=activeExercise.setup;$('retry').hidden=true;$('retry').disabled=false;$('capture-fill').style.width='0%';renderRail();renderSetup();if(matchMedia('(max-width: 680px)').matches)window.scrollTo?.({top:0,behavior:'instant'});
 }
 function renderRail(){$('step-rail').replaceChildren();EXERCISES.forEach((e,i)=>{const node=document.createElement('div');node.className='step-item'+(i===flow.index?' active':flow.results[e.id]?' done':skipped.includes(e.id)?' skipped':'');const n=document.createElement('span'),title=document.createElement('span');n.textContent=flow.results[e.id]?'✓':skipped.includes(e.id)?'—':String(i+1).padStart(2,'0');title.textContent=e.short;node.append(n,title);$('step-rail').append(node);});}
 function renderSetup(){
@@ -43,7 +43,7 @@ function renderSetup(){
  if(!demo&&!ready){phase('GET READY','waiting');$('cal-prompt').textContent='Preparing your camera…';$('cal-detail').textContent='Allow camera access. We’ll tell you when to move and when to hold.';$('cal-countdown').textContent=issue;return;}
  if(s==='failed'){phase('TRY AGAIN','waiting');$('cal-prompt').textContent='Let’s try that movement again.';$('cal-detail').textContent=flow.issue;$('cal-countdown').textContent='Choose Retry, or skip this movement.';return;}
  if(!valid){phase('TRACKING PAUSED','waiting');$('cal-prompt').textContent='Bring your movement into view.';$('cal-detail').textContent=issue;$('cal-countdown').textContent=holding?'The hold will restart when tracking is clear.':'The countdown will continue when tracking is clear.';return;}
- if(s==='position'){phase('GET INTO POSITION','move');$('cal-prompt').textContent=e.title;$('cal-detail').textContent=e.setup;$('cal-countdown').textContent=`Get ready · ${Math.ceil(remaining)}s until the first movement`;}
+ if(s==='position'){phase('GET INTO POSITION','move');$('cal-prompt').textContent=e.title;$('cal-detail').textContent=e.setupCue||e.setup;$('cal-countdown').textContent=`Get ready · ${Math.ceil(remaining)}s until the first movement`;}
  else if(moving){phase('MOVE INTO POSITION','move');$('cal-prompt').textContent=flow.endpoint===0?e.a:e.b;$('cal-detail').textContent='Move gently toward the position shown. Stop at your comfortable limit.';$('cal-countdown').textContent=`Move now · HOLD STILL in ${Math.ceil(remaining)}s`;}
  else{phase('HOLD STILL','hold');$('cal-prompt').textContent=flow.endpoint===0?e.holdA:e.holdB;$('cal-detail').textContent=flow.issue||'Stay in this position. Don’t keep moving—we’re measuring your range.';$('cal-countdown').textContent=remaining>0?`Keep holding · ${remaining.toFixed(1)}s left`:'Keep holding · collecting a few more clear frames';}
 }
