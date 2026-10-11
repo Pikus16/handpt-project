@@ -8,9 +8,9 @@ This repository is prepared for free public hosting at `https://pikus16.github.i
 
 ## Repository-local GitHub login
 
-From this repository, run `./scripts/gh-local login` and authorize **Pikus16** in the browser. The wrapper sets `GH_CONFIG_DIR` to `.git/gh-auth`, ignores inherited GitHub token environment variables, and skips global Git credential setup. Authentication is stored locally inside `.git`, with private directory/file permissions, rather than in the shared keychain. This local token file is never committed, packaged, or deployed. Its OAuth scopes still apply to the GitHub account; the isolation concerns where the login is stored and used.
+From this repository, run `./scripts/gh-local login` and authorize **Pikus16** in the browser. The wrapper sets `GH_CONFIG_DIR` to `.git/gh-auth`, ignores inherited GitHub token environment variables and shared keychain fallbacks, and skips global Git credential setup. Authentication is stored locally inside `.git`, with private directory/file permissions, rather than in the shared keychain. This local token file is never committed, packaged, or deployed. Its OAuth scopes still apply to the GitHub account; the isolation concerns where the login is stored and used.
 
-Use `./scripts/gh-local` instead of `gh` for this project's GitHub commands. The Git credential helper is configured with `git config --local` for this repository and remote only. Do not run `gh auth setup-git`; it changes global Git settings. To remove this repository's login, run `./scripts/gh-local auth logout --hostname github.com --user Pikus16`.
+Use `./scripts/gh-local` instead of `gh` for this project's GitHub commands. The Git credential helper is configured with `git config --local` for this repository and remote only. Do not run `gh auth setup-git`; it changes global Git settings. To remove this repository's login, run `./scripts/gh-local logout`.
 
 ## Run
 

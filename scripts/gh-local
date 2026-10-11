@@ -14,10 +14,31 @@ if [[ "${1:-}" == login ]]; then
   shift
   # Noninteractive web flow skips the global Git credential setup prompt.
   # File storage also avoids modifying the shared system keychain.
+  # Seed local state so gh cannot fall back to a legacy shared keychain token.
+  if [[ ! -f "$GH_CONFIG_DIR/hosts.yml" ]]; then
+    printf '%s\n' 'github.com:' '    user: repository-local-login-required' '    oauth_token: repository-local-login-required' > "$GH_CONFIG_DIR/hosts.yml"
+    chmod 600 "$GH_CONFIG_DIR/hosts.yml"
+  fi
   exec gh auth login --hostname github.com --git-protocol https --web --scopes workflow --insecure-storage "$@"
 fi
 if [[ "${1:-}" == auth && "${2:-}" == setup-git ]]; then
   printf '%s\n' 'Use the repository-local credential helper; global setup is disabled.' >&2
   exit 1
 fi
+if [[ "${1:-}" == logout ]]; then
+  rm -f "$GH_CONFIG_DIR/hosts.yml"
+  printf '%s\n' 'Repository-local login removed.'
+  exit 0
+fi
+if [[ ! -f "$GH_CONFIG_DIR/hosts.yml" ]] || ! grep -q '^    user: Pikus16$' "$GH_CONFIG_DIR/hosts.yml"; then
+  printf '%s\n' 'No repository-local Pikus16 login. Run ./scripts/gh-local login.' >&2
+  exit 1
+fi
+# Read only the local file. Exporting its token prevents any keychain fallback.
+GH_TOKEN="$(awk '/^    oauth_token: / {print $2; exit}' "$GH_CONFIG_DIR/hosts.yml")"
+if [[ -z "$GH_TOKEN" || "$GH_TOKEN" == repository-local-login-required ]]; then
+  printf '%s\n' 'The repository-local token is missing. Run ./scripts/gh-local login.' >&2
+  exit 1
+fi
+export GH_TOKEN
 exec gh "$@"
