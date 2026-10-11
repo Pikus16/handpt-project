@@ -116,7 +116,7 @@ export function renderGuide(canvas,exercise,state={}){
   else line(c,[[26,-8],[46,-27]],'#94a6cf',7);
   c.restore();c.strokeStyle='#b4a2dc';c.lineWidth=2;c.beginPath();c.arc(-22,10,88,-.7,.7);c.stroke();
   if(exercise.id==='deviation')label(c,'THUMB SIDE',-12,-51,'#8b7aa8',8);
-  c.restore();label(c,exercise.id==='flexion'?'SIDE VIEW · PALM SIDE BELOW':'TOP VIEW · THUMB SIDE ABOVE',w*.5,h-8,'#8390a8',8);return;
+  c.restore();if(w>180)label(c,exercise.id==='flexion'?'SIDE VIEW · PALM SIDE BELOW':'TOP VIEW · THUMB SIDE ABOVE',w*.5,h-8,'#8390a8',8);return;
  }
  line(c,[[-17,65],[-17,29],[17,29],[17,65]],'#9eafd0',12);ellipse(c,0,9,28,36,'#9eafd0');
  for(let i=0;i<4;i++){
@@ -140,5 +140,5 @@ export function renderGuide(canvas,exercise,state={}){
  if(exercise.id==='opposition'&&phase>.85)circle(c,21,-62,8,'#c1e1d244');
  c.restore();
  const caption=state.stage?.startsWith('hold')?'HOLD THIS POSITION':exercise.id==='opposition'?'THUMB TOWARD LITTLE FINGER':'GENTLE MOVEMENT · WRIST STILL';
- label(c,caption,w*.5,h-7,'#8390a8',8);
+ if(w>180)label(c,caption,w*.5,h-7,'#8390a8',8);
 }
