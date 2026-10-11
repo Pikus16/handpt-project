@@ -5,7 +5,13 @@ self.onmessage=async({data})=>{try{
   const module=await import('./vendor/vision_bundle.mjs');
   const {ForearmTracker}=await import('./forearm.js');forearmTracker=new ForearmTracker();
   const vision=await module.FilesetResolver.forVisionTasks(new URL('./vendor/wasm',self.location).href);
-  detector=await module.HandLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:new URL('./vendor/hand_landmarker.task',self.location).href,delegate:'CPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.65,minHandPresenceConfidence:.65,minTrackingConfidence:.65});
+  // MediaPipe's Safari user-agent check can reject supported OffscreenCanvas
+  // (e.g. CriOS has no Version/Safari token), then access document in a worker.
+  // Supplying the inference canvas bypasses that DOM fallback without changing
+  // the vendored library. Keep it separate from the 2D forearm pixel canvas.
+  if(typeof OffscreenCanvas!=='function')throw new Error('This browser needs a newer iOS version for camera tracking. Update iOS, then retry');
+  const inferenceCanvas=new OffscreenCanvas(1,1);
+  detector=await module.HandLandmarker.createFromOptions(vision,{canvas:inferenceCanvas,baseOptions:{modelAssetPath:new URL('./vendor/hand_landmarker.task',self.location).href,delegate:'CPU'},runningMode:'VIDEO',numHands:2,minHandDetectionConfidence:.65,minHandPresenceConfidence:.65,minTrackingConfidence:.65});
   self.postMessage({type:'ready'});
  }
  if(data.type==='reset-forearm')forearmTracker?.reset();

@@ -50,7 +50,7 @@ async function connectCamera(){
  if(!navigator.mediaDevices?.getUserMedia){issue='Camera needs HTTPS or localhost in a supported browser.';$('reconnect').hidden=false;$('camera-quality').textContent=issue;renderSetup();toast(issue);return;}
  const current=++generation;
  try{const media=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:960},height:{ideal:720}},audio:false});if(current!==generation){media.getTracks().forEach(t=>t.stop());return;}stream=media;$('video').srcObject=media;await $('video').play();if(current!==generation)return;$('camera-empty').hidden=true;$('camera-badge').textContent='LOCAL CAMERA';issue='Loading hand tracking';renderSetup();
- worker=new Worker('./tracker.js');worker.onmessage=({data})=>{
+ worker=new Worker('./tracker.js?v=iphone-canvas-1');worker.onmessage=({data})=>{
   if(current!==generation)return;
   if(data.type==='ready'){clearTimeout(initTimer);ready=true;lastVideo=-1;}
   if(data.type==='result'){busy=false;lastResult=performance.now();handleResult(data);}
