@@ -2,6 +2,7 @@ import {EXERCISES,GAMES,exerciseById,gameById} from './exercises.js';
 import {metrics,quality,wristQuality,wristViewQuality,exerciseMetric,progress,RepetitionCounter,clamp} from './rom.js';
 import {forearmProjection} from './forearm.js';
 import {CalibrationFlow} from './calibration.js';
+import {calibrationReadout} from './calibration-display.js';
 import {Adventure,renderAdventure,renderWelcome,renderGuide} from './arcade.js';
 const $=id=>document.getElementById(id);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -29,6 +30,13 @@ function renderSetup(){
  const e=flow.exercise,s=flow.stage,holding=s.startsWith('hold'),moving=s.startsWith('prepare');
  const remaining=Math.max(0,flow.duration-flow.elapsed);
  const phase=(label,kind)=>{$('cal-phase').textContent=label;$('cal-phase').dataset.phase=kind;};
+ const reading=calibrationReadout(flow,value,{valid,paused:setupPaused});
+ $('cal-measure-name').textContent=e.measure+(e.unit==='×'?' · Ratio':' · Camera estimate');
+ $('cal-live-status').textContent=setupPaused?'Paused':demo?'Simulated':valid?'Live':'Waiting for tracking';
+ $('cal-live-value').textContent=fmt(reading.live,e);
+ $('cal-first-value').textContent=fmt(reading.first.value,e);$('cal-first-status').textContent=reading.first.state;
+ $('cal-second-value').textContent=fmt(reading.second.value,e);$('cal-second-status').textContent=reading.second.state;
+ $('cal-span-value').textContent=fmt(reading.span,e);$('cal-span-status').textContent=reading.span===null?'Both positions':'Preview';
  $('capture-fill').style.width=`${flow.fraction*100}%`;
  $('retry').hidden=s!=='failed';
  if(setupPaused){phase('PAUSED','waiting');$('cal-prompt').textContent='Rest whenever you need.';$('cal-detail').textContent='Press Resume setup when you’re ready to continue.';$('cal-countdown').textContent='The countdown is paused.';return;}
@@ -86,7 +94,18 @@ function handleResult(data){
  renderSetup();
 }
 function drawHand(points,wrist){const canvas=$('overlay'),video=$('video');canvas.width=video.videoWidth||960;canvas.height=video.videoHeight||720;const c=canvas.getContext('2d');c.clearRect(0,0,canvas.width,canvas.height);if(!points)return;c.lineWidth=2.5;c.strokeStyle='#bdc9ff';c.lineCap='round';for(const chain of [[0,1,2,3,4],[0,5,6,7,8],[5,9,10,11,12],[9,13,14,15,16],[13,17,18,19,20],[0,17]]){c.beginPath();chain.forEach((i,j)=>{const x=points[i].x*canvas.width,y=points[i].y*canvas.height;j?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();}for(const p of points){c.beginPath();c.arc(p.x*canvas.width,p.y*canvas.height,3,0,Math.PI*2);c.fillStyle='#fff';c.fill();}if(wrist){if(wrist.outline?.length){c.strokeStyle='#c1f1d480';c.lineWidth=2;c.beginPath();wrist.outline.forEach((p,i)=>{const x=p.x*canvas.width,y=p.y*canvas.height;i?c.lineTo(x,y):c.moveTo(x,y);});c.closePath();c.stroke();}c.strokeStyle='#c1f1d4';c.lineWidth=4;c.beginPath();c.moveTo(wrist.elbow.x*canvas.width,wrist.elbow.y*canvas.height);c.lineTo(wrist.wrist.x*canvas.width,wrist.wrist.y*canvas.height);c.stroke();}}
-function renderLibrary(){const keys=Object.keys(calibrations);$('library-subtitle').textContent=demo?'Demo ranges loaded. Explore the games with the movement slider.':keys.length?'Your range is ready. Pick something that makes you smile.':'No movements calibrated yet. Try setup again when you’re ready.';$('range-summary').textContent=`${keys.length} of 5 movements ready${demo?' · Demo':''}`;
+function renderLibrary(){const keys=Object.keys(calibrations);$('library-subtitle').textContent=demo?'Explore with simulated ranges. Demo results are not saved.':keys.length?'Calibrated to you. Choose a game and move at your own pace.':'No movements calibrated yet. Return to setup when you’re ready.';$('range-summary').textContent=`${keys.length} of 5 movements ready${demo?' · Demo':''}`;
+ $('calibration-estimate-label').textContent=demo?'Simulated values':'Camera estimates';
+ $('calibration-summary-note').textContent='Your two comfortable positions and the span between them. Thumb opposition is a ratio.';
+ $('calibration-rows').replaceChildren();
+ for(const e of EXERCISES){
+  const cal=calibrations[e.id],row=document.createElement('tr'),name=document.createElement('th'),method=document.createElement('small');
+  name.setAttribute('scope','row');name.textContent=e.name;method.textContent=e.unit==='×'?'Gap / palm length':e.wrist?'Camera-plane angle':e.id==='curl'?'Mean PIP flexion':'Finger spread angle';name.append(method);row.append(name);
+  for(const [number,label] of [[cal?.a,'First'],[cal?.b,'Second'],[cal?Math.abs(cal.b-cal.a):null,'Span']]){
+   const cell=document.createElement('td');cell.textContent=!cal&&label==='Span'?'Skipped':fmt(number,e);cell.setAttribute('data-label',label);if(!cal)cell.className='uncaptured';row.append(cell);
+  }
+  $('calibration-rows').append(row);
+ }
  $('game-cards').replaceChildren();for(const game of GAMES){const e=exerciseById(game.exercise),available=!!calibrations[e.id];const card=document.createElement('article');card.className='game-card'+(!available?' unavailable':'');const art=document.createElement('div');art.className='card-art';art.style.background=game.color;const canvas=document.createElement('canvas');canvas.dataset.preview=game.id;const tag=document.createElement('span');tag.className='card-movement';tag.textContent=e.name;art.append(canvas,tag);const copy=document.createElement('div');copy.className='card-copy';const title=document.createElement('h2');title.textContent=game.name;const description=document.createElement('p');description.textContent=game.description;const foot=document.createElement('div');foot.className='card-footer';const range=document.createElement('span');range.textContent=available?`${fmt(Math.abs(calibrations[e.id].b-calibrations[e.id].a),e)} calibrated span`: 'Calibrate this movement to play';const button=document.createElement('button');button.textContent='↗';button.setAttribute('aria-label','Play '+game.name);button.disabled=!available;button.onclick=()=>startGame(game.id);foot.append(range,button);copy.append(title,description,foot);card.append(art,copy);$('game-cards').append(card);}
 }
 function drawCards(){document.querySelectorAll('[data-preview]').forEach(canvas=>{const g=gameById(canvas.dataset.preview),state=new Adventure(g);state.collected=g.id==='stars'?3:0;state.phase='charge';state.progress=.45;state.elapsed=1;renderAdventure(canvas,state,{preview:true,reduced:true});});}
@@ -95,6 +114,8 @@ function startGame(id){const game=gameById(id);const e=exerciseById(game.exercis
 function showMask(){const needsResume=paused;$('game-mask').hidden=!(needsResume||!valid);$('resume').hidden=!needsResume;$('mask-icon').textContent=needsResume?'Ⅱ':'◉';$('mask-title').textContent=needsResume?'A little breather.':'Let’s find your movement.';$('mask-detail').textContent=needsResume?'Resume whenever you’re ready.':issue;$('pause').textContent=needsResume?'Resume':'Pause';}
 $('pause').onclick=()=>{if(!session)return;paused=!paused;adventure.pause();counter.dwell=0;showMask();};$('resume').onclick=()=>{paused=false;showMask();};$('finish').onclick=()=>finishSession();$('leave-game').onclick=()=>{if(session)finishSession();renderLibrary();show('library');};
 function finishSession(){if(!session)return;const s={...session,score:adventure.score,collected:adventure.collected,goal:adventure.goal,elapsed:adventure.elapsed,reps:counter.count,min:Number.isFinite(session.min)?session.min:null,max:Number.isFinite(session.max)?session.max:null,range:Number.isFinite(session.min)?session.max-session.min:null,unit:activeExercise.unit};let saved=false;const best=history.filter(h=>h.game===s.game).reduce((n,h)=>Math.max(n,h.score),0);
+ $('result-calibration-title').textContent=activeExercise.name+' · '+(s.demo?'simulated calibration':'your calibration');
+ $('result-cal-first').textContent=fmt(s.cal.a);$('result-cal-second').textContent=fmt(s.cal.b);$('result-cal-span').textContent=fmt(Math.abs(s.cal.b-s.cal.a));
  if(!s.demo&&s.samples>0){history.unshift(s);history=history.slice(0,200);try{localStorage.setItem('handpt-project.sessions.v2',JSON.stringify(history.filter(s=>!s.legacy)));saved=true;}catch{toast('Storage is unavailable. Export your session CSV before closing the page.');}}
  $('result-title').textContent=s.collected>=s.goal?'Adventure complete.':s.collected>0?'Lovely moves.':'At your own pace.';$('result-message').textContent=s.collected>=s.goal?gameById(s.game).goal+' — beautifully done.':`${s.collected} ${adventure.goalLabel.toLowerCase()} collected in ${Math.round(s.elapsed)} active seconds.`;$('result-score').textContent=s.score;$('result-moves').textContent=s.reps;$('result-range').textContent=fmt(s.range);$('result-medal').textContent=s.collected>=s.goal?'✦':s.collected>0?'✧':'♡';$('save-note').textContent=s.demo?'Demo only · Simulated measurements, not saved.':saved?(s.score>best?'A new personal best. ':'')+'Saved on this device.':s.samples===0?'No valid measurements captured. No session saved.':'Kept in memory. Export CSV before closing the page.';session=null;paused=false;$('setup-camera-host').append($('camera-shell'));show('result');chime('finish');}
 $('play-again').onclick=()=>{renderLibrary();show('library');};
